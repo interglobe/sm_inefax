@@ -26,21 +26,6 @@
 
 */
 
-// from e-mail address (required)
-$from = "devnull@nyigc.net";
-
-//FNORD  logo to use in header or footer. use in $header like <img src="cid:logo.png">
-$logo = "/igc/agi/sm/igc-logo.png";
-
-// header html.  no default.
-$header = <<<END
-  <div style="font-weight: bold;padding:8px;background-color:#ffe5af; border-bottom:1px solid #707070;clear:both;">
-    <img src="cid:logo@localhost.localdomain" width="210" height="67" style="width:210px;height:67px;clear:none;"/>
-    <div style="float:right;text-align:right;margin-top:8px;clear:none;">http://www.nyigc.com/<br>support@nyigc.com<br>1-212-918-2000</span>
-  </div>
-
-END;
-
 /* TODO
      put all the config variables into a global config array
      modularize code into more functions
@@ -48,47 +33,14 @@ END;
      e-mail fatal errors to $fail_to
 */
 
-// enable debug and don't daemonize. default is false.
-$debug = TRUE;
-
-// send failed fax notifications here. default is to not send failed fax notifications.
-$fail_to = "ewieling@nyigc.com";
-
-// cc address to receive copies of all successfully received faxes. no default.
-// this might be useful to cc all faxes to a manager or to a 3rd party fax archive system
-$cc = "ewieling@nyigc.com";
-
-// location of tiff2pdf binary. default is /usr/bin/tiff2pdf.
-$tiff2pdf_bin = "/usr/bin/tiff2pdf";
-
-// location of tiffinfo binary. default is /usr/bin/tiffinfo.
-$tiffinfo_bin = "/usr/bin/tiffinfo";
-
-// location of tiffcrop binary. default is /usr/bin/tiffcrop.
-$tiffcrop_bin = "/usr/bin/tiffcrop";
-
-// location of tifftopnm binary. default is /usr/bin/tifftopnm
-$tifftopnm_bin = "/usr/bin/tifftopnm";
-
-// location of pbmreduce binary. default is /usr/bin/pbmreduce
-$pbmreduce_bin = "/usr/bin/pbmreduce";
-
-// location of pnmtopng binary. default is /usr/bin/pnmtopng
-$pnmtopng_bin = "/usr/bin/pnmtopng";
-
-// where your phpagi.php is located. default is /var/lib/asterisk/agi-bin.
-$agi_lib_dir = "/igc/lib";
-
-// temp dir for temp files, directory will be created if it does not exist. default is /tmp/sm_efax.
-//$temp_dir = "/tmp/sm_efax";
-
-// delete .tiff files after fax is e-mailed out. default is false.
-$delete_tiff = FALSE;
-
-// delete .pdf files after fax is e-mailed out.  default is false.
-$delete_pdf = FALSE;
-
-/* *** END OF CONFIGURATION VARIABLES *** */
+if (file_exists("/etc/sm/sm_in-efax.conf")) {
+    require_once("/etc/sm/sm_in-efax.conf");
+} elseif (file_exists("/etc/sm_in-efax.conf")) {
+    require_once("/etc/sm_in-efax.conf");
+} else {
+    echo __LINE__ . ": config file '/etc/sm_in-efax.conf' accessable.\n";
+    die;
+}
 
 ini_set("log_errors", 1);
 ini_set("log_errors_max_len", 4096);
@@ -376,6 +328,7 @@ if (file_exists("$temp_dir/$filename.tiff") && filesize("$temp_dir/$filename.tif
 
     $timestamp = date("D, Y-m-d") . " at " . date("h:i a T");
 
+    // BCC is only temporary while testing
     if ($cc != "") {
         $headers .= "BCC: $cc\n";
     }
