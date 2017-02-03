@@ -1,7 +1,7 @@
 #!/usr/bin/php
 <?php
 /*
-    ** In eFax **
+    ** Inefax **
 
     An Asterisk AGI to accept incoming faxes, convert them to
     PDF and e-mail them to the user.
@@ -513,10 +513,6 @@ $imageinfo
 
 
 END;
-
-//if ($debug == TRUE) {
-//    file_put_contents("/tmp/efax.message", "$headers\nXXXXXXXXXX\n$to\nXXXXXXXXXX\n$subject\nXXXXXXXXXX\n$message");
-//}
 
 mail($to, $subject, $message, $headers);
 
