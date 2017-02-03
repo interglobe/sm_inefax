@@ -423,7 +423,7 @@ $header
       </div>
   </div>
   <div style="text-align:center;padding:4px">
-    <a href="http://www.nyigc.com/">InterGlobe eFax</a> $version (c)2017 InterGlobe Communications, Inc.
+    <a href="http://www.nyigc.com/">InterGlobe Inefax</a> $version (c)2017 InterGlobe Communications, Inc.
   </div>
 </div>
 </body></html>
@@ -482,7 +482,7 @@ $message .= <<<END
 Content-Type: text/plain
 Content-Disposition: attachment; filename=metadata.txt
 
-This is only useful to the NSA and techs troubleshooting eFax issues.
+This metadata is useful only to the NSA and techs troubleshooting Inefax issues.
 
 ----------
 METADATA
