@@ -109,14 +109,6 @@ if (!isset($tifftopnm_bin) || trim($tifftopnm_bin) == "") {
     $tiffinfo_bin = "/usr/bin/tifftopnm";
 }
 
-if (!isset($tifftopnm_bin) || trim($tifftopnm_bin) == "") {
-    $tiffinfo_bin = "/usr/bin/tifftopnm";
-}
-
-if (!isset($pbmreduce_bin) || trim($pbmreduce_bin) == "") {
-    $tiffinfo_bin = "/usr/bin/pbmreduce";
-}
-
 if (!isset($pnmtopng_bin) || trim($pnmtopng_bin) == "") {
     $pnmtopng_bin = "/usr/bin/pnmtopng";
 }
@@ -126,7 +118,7 @@ if (!isset($agi_lib) || trim($agi_lib) == "") {
 }
 
 if (!isset($temp_dir) || trim($temp_dir) == "") {
-    $temp_dir = "/tmp/sm_efax";
+    $temp_dir = "/tmp/sm_inefax";
 }
 
 if (!isset($logo)|| trim($logo) == "") {
@@ -157,10 +149,6 @@ if (!is_executable($tiffcrop_bin)) {
 
 if (!is_executable($tifftopnm_bin)) {
     $errors .= __LINE__ . ": ######## $tifftopnm_bin is not executable by user $username.\n";
-}
-
-if (!is_executable($pbmreduce_bin)) {
-    $errors .= __LINE__ . ": ######## $pbmreduce_bin is not executable by user $username.\n";
 }
 
 if (!is_executable($pnmtopng_bin)) {
@@ -282,7 +270,7 @@ $sessionid = $agi->get_variable("FAXOPT(sessionid)", TRUE);
 $pages = $agi->get_variable("FAXOPT(pages)", TRUE);
 $headerinfo = $agi->get_variable("FAXOPT(headerinfo)", TRUE);
 
-$agi->exec("CELGenUserEvent", "\"SM_EFAX,status='$status' statusstr='$statusstr' ecm='$ecm' pages='$pages' rate='$rate' remotestationid='$remotestationid' localstationid='$localstationid' resolution='$resolution' sessionid='$sessionid' filenames='$fax_filenames'\"");
+$agi->exec("CELGenUserEvent", "\"SM_INEFAX,status='$status' statusstr='$statusstr' ecm='$ecm' pages='$pages' rate='$rate' remotestationid='$remotestationid' localstationid='$localstationid' resolution='$resolution' sessionid='$sessionid' filenames='$fax_filenames'\"");
 
 // become a daemon so we don't tie up asterisk resources while we process the fax
 if ($debug !== TRUE) {
@@ -366,11 +354,9 @@ if (file_exists("$temp_dir/$filename.tiff") && filesize("$temp_dir/$filename.tif
 
     system("$tiffcrop_bin -N 1 $temp_dir/$filename.tiff $temp_dir/$filename-cover-temp.tiff");
 
-    system("/usr/bin/tifftopnm -respectfillorder $temp_dir/$filename-cover-temp.tiff > $temp_dir/$filename-cover-temp.pbm");
+    system("/usr/bin/tifftopnm -respectfillorder $temp_dir/$filename-cover-temp.tiff > $temp_dir/$filename-cover-temp.pnm");
 
-    system("/usr/bin/pbmreduce 3 $temp_dir/$filename-cover-temp.pbm > $temp_dir/$filename-cover.pbm");
-
-    system("/usr/bin/pnmtopng $temp_dir/$filename-cover.pbm > $temp_dir/$filename-cover.png");
+    system("/usr/bin/pnmtopng $temp_dir/$filename-cover-temp.pnm > $temp_dir/$filename-cover.png");
 
     $cover_fp = fopen("$temp_dir/$filename-cover.png", "rb");
     if ($cover_fp === FALSE) {
@@ -383,8 +369,11 @@ if (file_exists("$temp_dir/$filename.tiff") && filesize("$temp_dir/$filename.tif
     $cover_base64 = chunk_split(base64_encode($cover_img));
 
     // get width and height of generated cover page for <img> tag
-    $cover_header = unpack("N1width/N1height", substr($cover_img, 16, 8));
+    $temp = unpack("N1width/N1height", substr($cover_img, 16, 8));
     unset($cover_img);
+
+    $width = round($temp["width"] / 3);
+    $height = round($temp["height"] / 3);
 
     system("$tiff2pdf_bin -p letter -o $temp_dir/$filename.pdf $temp_dir/$filename.tiff");
     $fax_base64 = chunk_split(base64_encode(file_get_contents("$temp_dir/$filename.pdf")));
@@ -427,7 +416,7 @@ $header
         The first page of your fax is shown below.  The complete fax is an attachment to this message.
       </div>
       <br>
-      <img src="cid:cover-page@localhost.localdomain" height="{$cover_header["height"]}" width="{$cover_header["width"]}" style="height:{$cover_header["height"]}px;width:{$cover_header["width"]}px;display:block;margin-right:auto;margin-left:auto;border:1px solid #707070;padding:4px;clear:both;"/>
+      <img src="cid:cover-page@localhost.localdomain" height="$height" width="$width" style="height:$height px;width:$width px;display:block;margin-right:auto;margin-left:auto;border:1px solid #707070;padding:4px;clear:both;"/>
       <br>
       <div style="text-align:center;">
         <span style="font-weight:bold">complete fax document is attached
