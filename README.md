@@ -7,10 +7,12 @@ Asterisk PBX AGI which handles incoming faxes, converts them to PDF, and mails t
   Client: Gmail and Thunderbird
     
 # Pros
-
-   Generates a nice looking MIME email message.
+  Generates a nice looking MIME email message.
    
-   Scaled down copy of the first page is shown inline with the HTML part of email
+  Scaled down copy of the first page is shown inline with the HTML part of email
    
-   Text version of message is included for people living in the dark ages
+  Text version of message is included for people living in the dark ages
    
+# Cons
+   Tested in a very 
+  
