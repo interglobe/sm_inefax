@@ -27,20 +27,16 @@
 */
 
 /* TODO
-     put all the config variables into a global config array
-     modularize code into more functions
-     use pipes when possible when converting, but that makes it harder to debug
+     put all the config variables into a single global config array
+     modularize code into more functions using the single global config array
+     use pipes when possible, but that makes it harder to debug
      e-mail fatal errors to $fail_to
+     correctly handle normal, fine, and (later) superfine
+     improve quality of first page preview image
+     reduce size of first page preview image
 */
 
-if (file_exists("/etc/sm/sm_in-efax.conf")) {
-    require_once("/etc/sm/sm_in-efax.conf");
-} elseif (file_exists("/etc/sm_in-efax.conf")) {
-    require_once("/etc/sm_in-efax.conf");
-} else {
-    echo __LINE__ . ": config file '/etc/sm_in-efax.conf' accessable.\n";
-    die;
-}
+$version = "v0.52 2017-02-01";
 
 ini_set("log_errors", 1);
 ini_set("log_errors_max_len", 4096);
@@ -49,9 +45,42 @@ ini_set("zlib.output_compression", 0);
 ini_set("display_errors", 1);
 error_reporting(E_ALL | E_STRICT);
 
-$version = "v0.52 2017-02-01";
+// for use in error messages
+$gecos = posix_getpwuid(posix_geteuid());
+$username = $gecos["name"];
+
+// command line options
+$opts = getopt("a:d:e:c:");
+if ($opts == FALSE || !isset($opts["a"]) || !isset($opts["d"]) ||!isset($opts["e"]) ) {
+    echo __LINE__ . ": ######## invalid command line options. or two few options" . print_r($argv, TRUE) . "\n";
+    die;
+}
+
+// find and load config file
+
+if (isset($opts["c"])) { // config file specified
+
+    if (file_exists($opts["c"])) {
+        require_once($opts["c"]);
+    } else {
+        echo "configuration file '{$opts["c"]}' does not exist or cannot be accessed by user '$username'";
+    }
+
+} else { // config file not specified, look for it
+
+    $basename = basename(__FILE__, ".php");
+    if (file_exists("/etc/$basename.conf")) {
+        require_once("/etc/$basename.conf");
+    } else if (file_exists("/etc/sm_inefax.conf")) {
+        require_once("/etc/sm_inefax.conf");
+    } else {
+        echo __LINE__ . ": unable to find config file.  first tried '/etc/$basename.conf, then '/etc/sm_inefax.conf'\n";
+        die;
+    }
+}
 
 // set defaults
+
 if (!isset($debug) || ($debug !== TRUE && $debug !== FALSE)) {
     $debug = FALSE;
 }
@@ -92,10 +121,8 @@ if (!isset($pnmtopng_bin) || trim($pnmtopng_bin) == "") {
     $pnmtopng_bin = "/usr/bin/pnmtopng";
 }
 
-if (!isset($agi_lib_dir) || trim($agi_lib_dir) == "") {
+if (!isset($agi_lib) || trim($agi_lib) == "") {
     $agi_lib = "/var/lib/asterisk/agi-bin/phpagi.php";
-} else {
-    $agi_lib = "$agi_lib_dir/phpagi.php";
 }
 
 if (!isset($temp_dir) || trim($temp_dir) == "") {
@@ -109,14 +136,6 @@ if (!isset($logo)|| trim($logo) == "") {
 if (!isset($header) || trim($header) == "") {
     $header = "";
 }
-
-if (!isset($footer) || trim($footer) == "") {
-    $footer = "";
-}
-
-// for use in error messages
-$gecos = posix_getpwuid(posix_geteuid());
-$username = $gecos["name"];
 
 // verify required files and directories are accessable and have required permissions
 $errors = "";
@@ -158,7 +177,7 @@ if ($logo != "" && !is_readable($logo)) {
 
 if (!file_exists($temp_dir)) {
     if (!mkdir($temp_dir, 0700 , TRUE)) {
-        $errors .= __LINE__ . ": ######## cannot create temp dir $temp_dir with user $username.\n";
+        $errors .= __LINE__ . ": ######## cannot create temp dir $temp_dir as user $username.\n";
     }
 }
 
@@ -174,15 +193,10 @@ if (!is_executable($temp_dir)) {
     $errors .= __LINE__ . ": ######## $temp_dir is not executable by user $username.\n";
 }
 
-$opts = getopt("", array("ani:", "dnis:", "to:"));
-if ($opts == FALSE || count($opts) != 3) {
-    $errors .= __LINE__ . ": ######## invalid command line options. " . print_r($argv, TRUE) . "\n";
-}
-
 // process the To: email addresses
 // removes "efax/" strings and converts any & (ampersand) to , (comma)
 $to = "";
-$tos = preg_replace("#efax/#i", "", $opts["to"]);
+$tos = preg_replace("#efax/#i", "", $opts["e"]);
 $tos = preg_replace("/,/", "&", $tos);
 $temp1 = explode("&", $tos);
 foreach ($temp1 as $temp2) {
@@ -195,10 +209,9 @@ if ($to == "") {
 }
 
 require_once($agi_lib);
-
 $agi = new AGI();
 
-// output fatal errors and exit
+// if there are any errors at this point, output them with agi verbose and exit
 if ($errors != "") {
     foreach (explode("\n", $errors) as $error) {
         $error = preg_replace('/"/', "'", preg_replace("/\s+/", " ", trim($error)));
@@ -213,26 +226,20 @@ $linkedid = $agi->get_variable("LINKEDID", TRUE);
 $account_name = preg_replace("/[^ a-z0-9&,.-]/i", " ", $agi->get_variable("SM_ACCOUNT_NAME", TRUE));
 
 // format NANP ani
-if (preg_match("/1([2-9]\d\d)([2-9]\d\d)(\d{4})/", $opts["ani"], $matches)) {
+if (preg_match("/1([2-9]\d\d)([2-9]\d\d)(\d{4})/", $opts["a"], $matches)) {
     $ani = "1-{$matches[1]}-{$matches[2]}-{$matches[3]}";
 } else {
-    $ani = $opts["ani"];
+    $ani = $opts["a"];
 }
 
 // format NANP dnis
-if (preg_match("/1([2-9]\d\d)([2-9]\d\d)(\d{4})/", $opts["dnis"], $matches)) {
+if (preg_match("/1([2-9]\d\d)([2-9]\d\d)(\d{4})/", $opts["d"], $matches)) {
     $dnis = "1-{$matches[1]}-{$matches[2]}-{$matches[3]}";
 } else {
-    $dnis = $opts["dnis"];
+    $dnis = $opts["d"];
 }
 
 $agi->set_variable("FAXOPT(localstationid)", trim("$dnis $account_name"));
-
-// build the fax filename
-$datetime = date("Ymd_His", time());
-preg_match("/0\.([^ ]+)/", microtime(), $matches);
-$datetime .= "-" . substr($matches[1], 0, 6);
-$filename = "fax_" . $opts["ani"] . "_to_" . $opts["dnis"] . "_at_" . $datetime;
 
 set_time_limit(600);
 declare(ticks = 1); // needed for pcntl_ functions
@@ -241,6 +248,16 @@ declare(ticks = 1); // needed for pcntl_ functions
 // we need to stick around to process the fax
 pcntl_signal(SIGHUP, SIG_IGN);
 
+// tarpit, helps slow down looping calls
+sleep(1);
+
+// build the fax filename
+$datetime = date("Ymd_His", time());
+preg_match("/0\.([^ ]+)/", microtime(), $matches);
+$datetime .= "-" . substr($matches[1], 0, 6);
+$filename = "fax_" . $opts["a"] . "_to_" . $opts["d"] . "_at_" . $datetime;
+
+// receive the fax
 if ($debug === TRUE) {
     $agi->exec("ReceiveFax", "$temp_dir/$filename.tiff,d");
 } else {
@@ -285,7 +302,7 @@ if ($debug !== TRUE) {
 // be nice and lower our priority and the priority of any spawned processes.
 proc_nice(10);
 
-// build mime e-mail from scratch to eliminate external dependencies
+// build mime e-mail from scratch to eliminate external dependencies.
 
 // Generate a MIME boundary string
 $boundary = md5(microtime(TRUE));
@@ -294,6 +311,7 @@ $related_boundary = "related-$boundary";
 $alt_boundary = "alt-$boundary";
 
 $header_date = date("r");
+
 $headers = <<<END
 From: $remotestationid <noreply@nyigc.net>
 Return-Path: noreply@nyigc.net
@@ -319,35 +337,31 @@ Content-Disposition: inline; filename=body
 
 END;
 
-// only consider files > 512 bytes to be valid. it is possible to have a usable
+// consider only files > 512 bytes as valid. it is possible to have a usable
 // fax, even if FAXOPT(status) is ERROR.  perhaps the last few pixels or lines
-// of pixels was not received.
+// of pixels was not received.  we still want to process them.
 if (file_exists("$temp_dir/$filename.tiff") && filesize("$temp_dir/$filename.tiff") > 512) {
 
+    $timestamp = date("D, Y-m-d") . " at " . date("h:i a T");
+    $subject = "Fax from $ani to $dnis";
     $imageinfo = `$tiffinfo_bin $temp_dir/$filename.tiff 2>&1`;
 
-    $timestamp = date("D, Y-m-d") . " at " . date("h:i a T");
-
-    // BCC is only temporary while testing
     if ($cc != "") {
-        $headers .= "BCC: $cc\n";
+        if ($debug === TRUE) {
+            $headers .= "BCC: $cc\n";
+        } else {
+            $headers .= "cc: $cc\n";
+        }
     }
 
-    $subject = "Fax from $ani to $dnis";
+    // placeholder for missing logo
+    $logo_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAABBJREFUeNpi+P//PwNAgAEACPwC/tuiTRYAAAAASUVORK5CYII=";
 
     if (!trim($logo) == "") {
-
         $logo_img = file_get_contents($logo);
-        if ($logo_img === FALSE) {
-            // placeholder for missing logo
-            $logo_base64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
-        } else {
+        if ($logo_img !== FALSE) {
             $logo_base64 = chunk_split(base64_encode($logo_img));
         }
-
-    } else {
-        // placeholder for missing logo
-        $logo_base64 = "R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
     }
 
     system("$tiffcrop_bin -N 1 $temp_dir/$filename.tiff $temp_dir/$filename-cover-temp.tiff");
@@ -370,6 +384,7 @@ if (file_exists("$temp_dir/$filename.tiff") && filesize("$temp_dir/$filename.tif
 
     // get width and height of generated cover page for <img> tag
     $cover_header = unpack("N1width/N1height", substr($cover_img, 16, 8));
+    unset($cover_img);
 
     system("$tiff2pdf_bin -p letter -o $temp_dir/$filename.pdf $temp_dir/$filename.tiff");
     $fax_base64 = chunk_split(base64_encode(file_get_contents("$temp_dir/$filename.pdf")));
@@ -385,7 +400,7 @@ Content-Type: text/plain
 
     Your fax is attached.
 
- ** InterGlobe eFax $version (c)2017 InterGlobe Communications, Inc. **
+ ** InterGlobe Inefax $version (c)2017 InterGlobe Communications, Inc. **
 
 --$alt_boundary
 Content-Type: text/html
@@ -496,8 +511,8 @@ FAXOPT(resolution)=$resolution
 FAXOPT(sessionid)=$sessionid
 FAXOPT(headerinfo)=$headerinfo
 
-DNIS={$opts["dnis"]}
-ANI={$opts["ani"]}
+DNIS={$opts["d"]}
+ANI={$opts["a"]}
 
 LINKEDID=$linkedid
 
