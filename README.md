@@ -18,4 +18,4 @@ Asterisk PBX AGI which handles incoming faxes, converts them to PDF, and mails t
   
 ---  
 Copyright (c) 2017 InterGlobe Communications, Inc.  Licensed under GNU Affero GPL 3  
-Contact Gerald Bove <gbove@nyigc.com> for commercial licensing.  
+Contact Gerald Bove <gbove@nyigc.com> for commercial licensing options.  
