@@ -16,3 +16,9 @@ Asterisk PBX AGI which handles incoming faxes, converts them to PDF, and mails t
 # Cons
    * Not much real world usage.
   
+  
+Copyright (c) 2017 InterGlobe Communications, Inc.  
+
+Written by Eric Wieling <ewieling@nyigc.com>.  
+
+Contact Gerald Bove <gbove@nyigc.com> for commercial licensing.
