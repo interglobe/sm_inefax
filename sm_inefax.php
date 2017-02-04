@@ -429,7 +429,7 @@ $header
       </div>
   </div>
   <div style="text-align:center;padding:4px">
-    <a href="http://www.nyigc.com/">InterGlobe Inefax</a> $version (c)2017 InterGlobe Communications, Inc.
+    <a href="https://github.com/interglobe/sm_inefax">InterGlobe Inefax</a> $version (c)2017 InterGlobe Communications, Inc.
   </div>
 </div>
 </body></html>
