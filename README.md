@@ -7,14 +7,15 @@ Tested Gmail w/Chrome 55+ and Thunderbird 45+ as clients.
     
 # Pros
   * Generates a nice looking MIME email message.
-  * Scaled down copy of the first page is shown inline with the HTML part of email
-  * Doesn't require ImageMagik
-  * Text version of message is included for people living in the dark ages
-  
+  * Scaled down copy of the first page is shown inline with the HTML part of email.
+  * Header at top of page is configurable.
+  * Doesn't require ImageMagik.
+  * Text version of message is included for people living in the dark ages.
    
 # Cons
-   * Not much real world usage.
+   * Not much real world use.
+
   
 ---  
-Copyright (c) 2017 InterGlobe Communications, Inc.  Licensed under GNU Affero GPL 3  
-Contact Gerald Bove at 1-212-918-2000 for commercial licensing options.  
+Copyright (c) 2017 InterGlobe Communications, Inc.  Licensed under GNU Affero GPL 3.  
+Contact Gerald Bove at 1-212-918-2000 for other licensing options.  
