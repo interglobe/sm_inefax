@@ -17,5 +17,5 @@ Tested Gmail w/Chrome 55+ and Thunderbird 45+ as clients.
 
   
 ---  
-Copyright (c) 2017 InterGlobe Communications, Inc.  Licensed under GNU Affero GPL 3.  
+Copyright (c) 2017 [InterGlobe Communications, Inc.](http://nyigc.com)  Licensed under GNU Affero GPL 3.  
 Contact Gerald Bove at 1-212-918-2000 for other licensing options.  
