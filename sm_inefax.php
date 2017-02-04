@@ -32,8 +32,6 @@
      use pipes when possible, but that makes it harder to debug
      e-mail fatal errors to $fail_to
      correctly handle normal, fine, and (later) superfine
-     improve quality of first page preview image
-     reduce size of first page preview image
 */
 
 $version = "v0.52 2017-02-01";
@@ -211,7 +209,6 @@ if ($errors != "") {
 }
 
 $linkedid = $agi->get_variable("LINKEDID", TRUE);
-$account_name = preg_replace("/[^ a-z0-9&,.-]/i", " ", $agi->get_variable("SM_ACCOUNT_NAME", TRUE));
 
 // format NANP ani
 if (preg_match("/1([2-9]\d\d)([2-9]\d\d)(\d{4})/", $opts["a"], $matches)) {
@@ -227,7 +224,7 @@ if (preg_match("/1([2-9]\d\d)([2-9]\d\d)(\d{4})/", $opts["d"], $matches)) {
     $dnis = $opts["d"];
 }
 
-$agi->set_variable("FAXOPT(localstationid)", trim("$dnis $account_name"));
+$agi->set_variable("FAXOPT(localstationid)", trim("$dnis"));
 
 set_time_limit(600);
 declare(ticks = 1); // needed for pcntl_ functions
@@ -245,12 +242,18 @@ preg_match("/0\.([^ ]+)/", microtime(), $matches);
 $datetime .= "-" . substr($matches[1], 0, 6);
 $filename = "fax_" . $opts["a"] . "_to_" . $opts["d"] . "_at_" . $datetime;
 
+// start racording audio for troubleshooting if the fax fails.
+$agi->exec("Monitor", "/var/spool/asterisk/tmp/$filename,o");
+
 // receive the fax
 if ($debug === TRUE) {
     $agi->exec("ReceiveFax", "$temp_dir/$filename.tiff,d");
 } else {
     $agi->exec("ReceiveFax", "$temp_dir/$filename.tiff");
 }
+
+// end recording
+$agi->exec("StopMonitor");
 
 $error = $agi->get_variable("FAXOPT(error)", TRUE);
 if ($error == "INIT_ERROR") {
@@ -329,6 +332,9 @@ END;
 // fax, even if FAXOPT(status) is ERROR.  perhaps the last few pixels or lines
 // of pixels was not received.  we still want to process them.
 if (file_exists("$temp_dir/$filename.tiff") && filesize("$temp_dir/$filename.tiff") > 512) {
+
+    // delete audio recording because this is a successful fax
+    unlink("/var/spool/asterisk/tmp/$filename.wav");
 
     $timestamp = date("D, Y-m-d") . " at " . date("h:i a T");
     $subject = "Fax from $ani to $dnis";
@@ -413,13 +419,13 @@ $header
       </div>
       <br>
       <div>
-        The first page of your fax is shown below.  The complete fax is an attachment to this message.
+        First page of your fax is shown here.  Complete fax document is attached to this message.
       </div>
       <br>
-      <img src="cid:cover-page@localhost.localdomain" height="$height" width="$width" style="height:$height px;width:$width px;display:block;margin-right:auto;margin-left:auto;border:1px solid #707070;padding:4px;clear:both;"/>
+      <img src="cid:cover-page@localhost.localdomain" height="$height" width="$width" alt="copy of first page of fax" style="height:$height px;width:$width px;display:block;margin-right:auto;margin-left:auto;border:1px solid #707070;padding:4px;clear:both;"/>
       <br>
       <div style="text-align:center;">
-        <span style="font-weight:bold">complete fax document is attached
+        <span style="font-weight:bold">complete fax document is attached</span>
       </div>
   </div>
   <div style="text-align:center;padding:4px">
@@ -455,6 +461,8 @@ END;
 
 } elseif ($fail_to != "") {
 
+    // TODO attach audio recording for these failed faxes.
+
     // fax failed and $fail_to is set
     $to = $fail_to;
 
@@ -482,7 +490,7 @@ $message .= <<<END
 Content-Type: text/plain
 Content-Disposition: attachment; filename=metadata.txt
 
-This metadata is useful only to the NSA and techs troubleshooting Inefax issues.
+This metadata is useful only to technicians troubleshooting Inefax issues and the NSA.
 
 ----------
 METADATA
