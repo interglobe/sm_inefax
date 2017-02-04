@@ -19,4 +19,4 @@ Tested Gmail w/Chrome 55+ and Thunderbird 45+ as clients.
 ---  
 Copyright (c) 2017 [InterGlobe Communications, Inc.](http://nyigc.com)  
 Licensed under [GNU Affero GPL 3](https://www.gnu.org/licenses/agpl.txt).  Contact Gerald Bove at 1-212-918-2000 for other licensing options.  
-[Why AGPL3?](https://www.gnu.org/licenses/why-affero-gpl.html)  
+[Why AGPL3?](https://www.gnu.org/licenses/why-affero-gpl.html#content)  
